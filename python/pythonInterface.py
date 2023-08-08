@@ -87,18 +87,87 @@ def executeQueue():
     # Send the "go" command to the serial port, and wait for the response (up to the EOT marker)
     response = sendCommand("go")
 
+# Turn off all servos
+def servosOff():
+    # Send the "off" command to the serial port, and wait for the response (up to the EOT marker)
+    response = sendCommand("off")
+
+# Torque all servos
+def servosTorque():
+    # Send the "torque" command to the serial port, and wait for the response (up to the EOT marker)
+    response = sendCommand("torque")
+
+# Stop all servos in their current position
+def servosStop():
+    # Send the "stop" command to the serial port, and wait for the response (up to the EOT marker)
+    response = sendCommand("stop")
+
+
+#
+#   High-level functions
+#
+
+# Record the motion of the arm.
+# This function allows the user to move the arm to waypoints, and records the position of each servo at each waypoint.
+# The function exports a series of code blocks that can be used to replay the motion using the queueMove() function.
+# At the start of this function, all servos will be untorqued. 
+# The user will be prompted to move the arm to a waypoint, and then press enter.
+# This repeats until the user enters "done".
+
+def recordMotion():
+    # Step 1: Untorque all servos
+    servosOff()
+
+    # Step 2: Prompt the user to move the arm to a waypoint, and then press enter
+    wayPoints = []
+    inputStr = ""
+    while (True):
+        print("Move the arm to waypoint " + str(len(wayPoints)) + ", and then press enter. (or, type `done` to finish).")
+        inputStr = input()
+
+        # If the user entered "done", then stop
+        if (inputStr == "done"):
+            break
+
+        # Otherwise, record the current servo positions
+        wayPoints.append(readServoInfo())
+
+    # Step 3: Convert waypoints to code
+    code = ""
+    for i in range(len(wayPoints)):
+        # Get the waypoint
+        wayPoint = wayPoints[i]
+
+        # Add a comment specifying which waypoint this is
+        code += "# Waypoint " + str(i) + "\n"
+
+        # Add a code block to move each servo to the position in the waypoint
+        for servoID in wayPoint:
+            code += "queueServoMove(" + str(servoID) + ", " + str(wayPoint[servoID]["currentPosition"]) + ")\n"
+
+        # Add a code block to execute the queue
+        code += "executeQueue()\n"
+
+        # Add a code block to wait for the user to press enter
+        code += "input()\n"
+
+        code += "\n"
+
+    # Step 4: Print the code
+    print(code)
+
 
 # Send the "help" command to the serial port, and wait for the response (up to the EOT marker)
 print(sendCommand("help"))
 
-print(sendCommand("status-csv"))
 
 
+# Test1: Read the position of all servos
 servoInfo = readServoInfo()
 print(servoInfo)
 
 
-# Repeat 5 times
+# Test2: Move back and forth 5 times
 for i in range(5):
         
     queueServoMove(5, 1000)
